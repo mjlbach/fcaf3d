@@ -25,7 +25,7 @@ model = dict(
     test_cfg=dict(
         nms_pre=1000,
         iou_thr=.5,
-        score_thr=.01))
+        score_thr=.25)) # .01
 
 optimizer = dict(type='AdamW', lr=0.001, weight_decay=0.0001)
 optimizer_config = dict(grad_clip=dict(max_norm=10, norm_type=2))

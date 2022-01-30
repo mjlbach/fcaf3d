@@ -256,9 +256,12 @@ class Custom3DDataset(Dataset):
         assert isinstance(
             results[0], dict
         ), f'Expect elements in results to be dict, got {type(results[0])}.'
+        
+        pts_paths = [info['pts_path'] for info in self.data_infos]
         gt_annos = [info['annos'] for info in self.data_infos]
         label2cat = {i: cat_id for i, cat_id in enumerate(self.CLASSES)}
         ret_dict = indoor_eval(
+            pts_paths,
             gt_annos,
             results,
             iou_thr,

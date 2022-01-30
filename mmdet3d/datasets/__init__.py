@@ -19,6 +19,7 @@ from .s3dis_dataset import S3DISSegDataset, S3DISDataset
 from .scannet_dataset import ScanNetDataset, ScanNetSegDataset
 from .semantickitti_dataset import SemanticKITTIDataset
 from .sunrgbd_dataset import SUNRGBDDataset
+from .sunrgbd_igibson_dataset import SUNRGBDIGibsonDataset
 from .utils import get_loading_pipeline
 from .waymo_dataset import WaymoDataset
 
@@ -30,7 +31,8 @@ __all__ = [
     'ObjectNoise', 'GlobalRotScaleTrans', 'PointShuffle', 'ObjectRangeFilter',
     'PointsRangeFilter', 'Collect3D', 'LoadPointsFromFile', 'S3DISSegDataset',
     'NormalizePointsColor', 'IndoorPatchPointSample', 'IndoorPointSample',
-    'LoadAnnotations3D', 'GlobalAlignment', 'SUNRGBDDataset', 'ScanNetDataset',
+    'LoadAnnotations3D', 'GlobalAlignment', 'SUNRGBDDataset', 'SUNRGBDIGibsonDataset',
+    'ScanNetDataset',
     'ScanNetSegDataset', 'SemanticKITTIDataset', 'Custom3DDataset',
     'Custom3DSegDataset', 'LoadPointsFromMultiSweeps', 'WaymoDataset',
     'BackgroundPointsFilter', 'VoxelBasedPointSampler', 'get_loading_pipeline',

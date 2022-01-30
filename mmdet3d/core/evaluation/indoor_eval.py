@@ -70,6 +70,7 @@ def eval_det_cls(pred, gt, iou_thr=None):
     # {img_id: {'bbox': box structure, 'det': matched list}}
     class_recs = {}
     npos = 0
+    img_id_npos = {}
     for img_id in gt.keys():
         cur_gt_num = len(gt[img_id])
         if cur_gt_num != 0:
@@ -81,6 +82,7 @@ def eval_det_cls(pred, gt, iou_thr=None):
             bbox = gt[img_id]
         det = [[False] * len(bbox) for i in iou_thr]
         npos += len(bbox)
+        img_id_npos[img_id] = img_id_npos.get(img_id, 0) + len(bbox)
         class_recs[img_id] = {'bbox': bbox, 'det': det}
 
     # construct dets
@@ -144,8 +146,17 @@ def eval_det_cls(pred, gt, iou_thr=None):
                     fp_thr[iou_idx][d] = 1.
             else:
                 fp_thr[iou_idx][d] = 1.
-
+                
     ret = []
+    # Return additional information for custom metrics.
+    new_ret = {}
+    new_ret["image_ids"] = image_ids
+    new_ret["iou_thr"] = iou_thr
+    new_ret["ious"] = [max(x.tolist()) for x in ious]
+    new_ret["fp_thr"] = [x.tolist() for x in fp_thr] 
+    new_ret["tp_thr"] = [x.tolist() for x in tp_thr]
+    new_ret["img_id_npos"] = img_id_npos
+    
     for iou_idx, thresh in enumerate(iou_thr):
         # compute precision recall
         fp = np.cumsum(fp_thr[iou_idx])
@@ -157,7 +168,7 @@ def eval_det_cls(pred, gt, iou_thr=None):
         ap = average_precision(recall, precision)
         ret.append((recall, precision, ap))
 
-    return ret
+    return ret, new_ret
 
 
 def eval_map_recall(pred, gt, ovthresh=None):
@@ -179,9 +190,10 @@ def eval_map_recall(pred, gt, ovthresh=None):
     """
 
     ret_values = {}
+    new_ret_values = {}
     for classname in gt.keys():
         if classname in pred:
-            ret_values[classname] = eval_det_cls(pred[classname],
+            ret_values[classname], new_ret_values[classname] = eval_det_cls(pred[classname],
                                                  gt[classname], ovthresh)
     recall = [{} for i in ovthresh]
     precision = [{} for i in ovthresh]
@@ -197,10 +209,11 @@ def eval_map_recall(pred, gt, ovthresh=None):
                 precision[iou_idx][label] = np.zeros(1)
                 ap[iou_idx][label] = np.zeros(1)
 
-    return recall, precision, ap
+    return recall, precision, ap, new_ret_values
 
 
-def indoor_eval(gt_annos,
+def indoor_eval(pts_paths,
+                gt_annos,
                 dt_annos,
                 metric,
                 label2cat,
@@ -268,9 +281,14 @@ def indoor_eval(gt_annos,
             if img_id not in gt[label]:
                 gt[label][img_id] = []
             gt[label][img_id].append(bbox)
-
-    rec, prec, ap = eval_map_recall(pred, gt, metric)
+            
+    rec, prec, ap, new_ret_dict = eval_map_recall(pred, gt, metric)
     ret_dict = dict()
+    
+    # Export additional information for custom metrics calculation.
+    ret_dict["pts_paths"] = pts_paths
+    ret_dict["new_ret_dict"] = {label2cat[label] : metrics for label, metrics in new_ret_dict.items()}
+    
     header = ['classes']
     table_columns = [[label2cat[label]
                       for label in ap[0].keys()] + ['Overall']]
@@ -298,7 +316,7 @@ def indoor_eval(gt_annos,
         table_columns.append(list(map(float, rec_list)))
         table_columns[-1] += [ret_dict[f'mAR_{iou_thresh:.2f}']]
         table_columns[-1] = [f'{x:.4f}' for x in table_columns[-1]]
-
+        
     table_data = [header]
     table_rows = list(zip(*table_columns))
     table_data += table_rows
