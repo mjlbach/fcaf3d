@@ -8,13 +8,15 @@ from .base import Base3DDetector
 
 @DETECTORS.register_module()
 class SingleStageSparse3DDetector(Base3DDetector):
-    def __init__(self,
-                 backbone,
-                 neck_with_head,
-                 voxel_size,
-                 pretrained=False,
-                 train_cfg=None,
-                 test_cfg=None):
+    def __init__(
+        self,
+        backbone,
+        neck_with_head,
+        voxel_size,
+        pretrained=False,
+        train_cfg=None,
+        test_cfg=None,
+    ):
         super(SingleStageSparse3DDetector, self).__init__()
         self.backbone = build_backbone(backbone)
         neck_with_head.update(train_cfg=train_cfg)
@@ -32,18 +34,15 @@ class SingleStageSparse3DDetector(Base3DDetector):
     def extract_feat(self, points, img_metas):
         """Extract features from points."""
         coordinates, features = ME.utils.batch_sparse_collate(
-            [(p[:, :3] / self.voxel_size, p[:, 3:] / 255.) for p in points],
-            device=points[0].device)
+            [(p[:, :3] / self.voxel_size, p[:, 3:]) for p in points],
+            device=points[0].device,
+        )
         x = ME.SparseTensor(coordinates=coordinates, features=features)
         x = self.backbone(x)
         x = self.neck_with_head(x)
         return x
 
-    def forward_train(self,
-                      points,
-                      gt_bboxes_3d,
-                      gt_labels_3d,
-                      img_metas):
+    def forward_train(self, points, gt_bboxes_3d, gt_labels_3d, img_metas):
         x = self.extract_feat(points, img_metas)
         losses = self.neck_with_head.loss(*x, gt_bboxes_3d, gt_labels_3d, img_metas)
         return losses
